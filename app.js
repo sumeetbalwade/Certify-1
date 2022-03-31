@@ -161,44 +161,81 @@ app.post("/certificate", (req, res, next) => {
 app.get("/certificate", (req, res, next) => {
 	db.query("SELECT * FROM certificate", (err, result) => {
 		if (err) throw err;
-		return res.status(200).json({ message: "List of certificates", certificates: result });
+		return res
+			.status(200)
+			.json({ message: "List of certificates", certificates: result });
 	});
 });
 
 app.get("/certificate/:certificateId", (req, res, next) => {
-	db.query("SELECT * FROM certificate WHERE id = ?", req.params.certificateId, (err, result) => {
-		if (err) throw err;
-		return res.status(200).json({ message: "Certificate by id", certificates: result });
-	});
+	db.query(
+		"SELECT * FROM certificate WHERE id = ?",
+		req.params.certificateId,
+		(err, result) => {
+			if (err) throw err;
+			return res
+				.status(200)
+				.json({ message: "Certificate by id", certificates: result });
+		}
+	);
 });
 
 app.get("/adminCertificate/:adminId", (req, res, next) => {
-	db.query("SELECT id FROM admin WHERE email = ?", req.userData.email, (err, admin) => {
-		if (err) throw err;
-		if (req.params.adminId !== admin[0].id) {
-			return res.status(403).json({ message: "You do not have access to view certificate" });
-		}
-		db.query("SELECT * FROM certificate WHERE createdBy = ?", adminId, (err, result) => {
+	db.query(
+		"SELECT id FROM admin WHERE email = ?",
+		req.userData.email,
+		(err, admin) => {
 			if (err) throw err;
-			return res.status(200).json({ message: "List of certificates by admin id", certificates: result });
-		});
-	});
+			if (req.params.adminId !== admin[0].id) {
+				return res
+					.status(403)
+					.json({ message: "You do not have access to view certificate" });
+			}
+			db.query(
+				"SELECT * FROM certificate WHERE createdBy = ?",
+				adminId,
+				(err, result) => {
+					if (err) throw err;
+					return res
+						.status(200)
+						.json({
+							message: "List of certificates by admin id",
+							certificates: result,
+						});
+				}
+			);
+		}
+	);
 });
 
 app.delete("/certificate/:certificateId", (req, res, next) => {
-	db.query("SELECT id FROM admin WHERE email = ?", req.userData.email, (err, admin) => {
-		if (err) throw err;
-		db.query("SELECT createdBy from certificate WHERE id = ?", req.params.certificateId, (err, certificate) => {
+	db.query(
+		"SELECT id FROM admin WHERE email = ?",
+		req.userData.email,
+		(err, admin) => {
 			if (err) throw err;
-			if (certificate[0].createdBy !== admin[0].id) {
-				return res.status(403).json({ message: "You do not have access to view certificate" });
-			}
-			db.query("DELETE FROM certificate WHERE id = ?", req.params.certificateId, (err, result) => {
-				if (err) throw err;
-				return res.status(200).json({ message: "Certificate Deleted" });
-			});
-		});
-	});
+			db.query(
+				"SELECT createdBy from certificate WHERE id = ?",
+				req.params.certificateId,
+				(err, certificate) => {
+					if (err) throw err;
+					if (certificate[0].createdBy !== admin[0].id) {
+						return res
+							.status(403)
+							.json({ message: "You do not have access to view certificate" });
+					}
+					db.query(
+						"DELETE FROM certificate WHERE id = ?",
+						req.params.certificateId,
+						(err, result) => {
+							if (err) throw err;
+							return res.status(200).json({ message: "Certificate Deleted" });
+						}
+					);
+				}
+			);
+		}
+	);
 });
 
 app.listen(5000, () => {
