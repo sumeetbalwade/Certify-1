@@ -1,6 +1,4 @@
 var express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 
 const db = require("./db_connect");
 require("dotenv").config();
@@ -23,7 +21,7 @@ app.get("/test", (req, res) => {
 app.post("/register", (req, res, next) => {
 	const { email } = req.body;
 	if (email && email.length > 0) {
-		db.query("SELECT id FROM admin WHERE email = ?", email, (err, result) => {
+		db.query("SELECT id FROM admins WHERE email = ?", email, (err, result) => {
 			if (err) throw err;
 			if (result.length > 0) {
 				return res.status(401).json({ message: "Email already exists" });
@@ -34,29 +32,21 @@ app.post("/register", (req, res, next) => {
 					if (p in req.body && req.body[p].length > 0) {
 						newUser.push(req.body[p]);
 					} else {
-						return res
-							.status(401)
-							.json({ message: "Some required fields empty" });
+						return res.status(401).json({ message: "Some required fields empty" });
 					}
 				}
 				bcrypt.hash(req.body.password, 10, (err, hash) => {
 					if (err) {
-						return res
-							.status(500)
-							.json({ message: "Something went wrong", err: err });
+						return res.status(500).json({ message: "Something went wrong", err: err });
 					} else {
 						newUser.pop();
 						newUser.push(hash);
-						db.query(
-							"INSERT INTO admin(name, email, password) VALUES (?)",
-							[newUser],
-							(err, result) => {
-								if (err) throw err;
-								else {
-									return res.status(200).json({ message: "Admin Created" });
-								}
+						db.query("INSERT INTO admin(name, email, password) VALUES (?)", [newUser], (err, result) => {
+							if (err) throw err;
+							else {
+								return res.status(200).json({ message: "Admin Created" });
 							}
-						);
+						});
 					}
 				});
 			}
@@ -69,9 +59,9 @@ app.post("/register", (req, res, next) => {
 app.post("/login", (req, res, next) => {
 	const { email, password } = req.body;
 	if (email && email.length > 0 && password && password.length > 0) {
-		db.query("SELECT * FROM admin WHERE email = ?", email, (err, admin) => {
+		db.query("SELECT * FROM admin WHERE email = ?", email, (err, result) => {
 			if (err) throw err;
-			bcrypt.compare(password, admin[0].password, (err, result) => {
+			bcrypt.compare(password, result["password"], (err, result) => {
 				if (err) {
 					return res.status(401).json({ message: "Login Failed" });
 				}
@@ -87,11 +77,7 @@ app.post("/login", (req, res, next) => {
 						}
 					);
 					console.log(result[("email", " logged in")]);
-					return res
-						.status(200)
-						.json({ message: "Login Successful", token: token });
-				} else {
-					return res.status(401).json({ message: "Login Failed" });
+					return res.status(200).json({ message: "Login Successful", token: token });
 				}
 			});
 		});
