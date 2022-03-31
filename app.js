@@ -1,5 +1,6 @@
 var express = require("express");
 var uuid = require("uuid");
+var cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -7,6 +8,7 @@ const db = require("./db_connect");
 require("dotenv").config();
 
 var app = express();
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -35,21 +37,29 @@ app.post("/register", (req, res, next) => {
 					if (p in req.body && req.body[p].length > 0) {
 						newUser.push(req.body[p]);
 					} else {
-						return res.status(401).json({ message: "Some required fields empty" });
+						return res
+							.status(401)
+							.json({ message: "Some required fields empty" });
 					}
 				}
 				bcrypt.hash(req.body.password, 10, (err, hash) => {
 					if (err) {
-						return res.status(500).json({ message: "Something went wrong", err: err });
+						return res
+							.status(500)
+							.json({ message: "Something went wrong", err: err });
 					} else {
 						newUser.pop();
 						newUser.push(hash);
-						db.query("INSERT INTO admin(name, email, password) VALUES (?)", [newUser], (err, result) => {
-							if (err) throw err;
-							else {
-								return res.status(200).json({ message: "Admin Created" });
+						db.query(
+							"INSERT INTO admin(name, email, password) VALUES (?)",
+							[newUser],
+							(err, result) => {
+								if (err) throw err;
+								else {
+									return res.status(200).json({ message: "Admin Created" });
+								}
 							}
-						});
+						);
 					}
 				});
 			}
@@ -79,8 +89,12 @@ app.post("/login", (req, res, next) => {
 							expiresIn: "7d",
 						}
 					);
-					console.log(result[("email", " logged in")]);
-					return res.status(200).json({ message: "Login Successful", token: token });
+					console.log(admin[0].email + " Logged In");
+					return res.status(200).json({
+						message: "Login Successful",
+						id: admin[0].id,
+						token: token,
+					});
 				} else {
 					return res.status(401).json({ message: "Login Failed" });
 				}
@@ -99,7 +113,14 @@ app.get("/admin", (req, res, next) => {
 });
 
 app.post("/certificate", (req, res, next) => {
-	const reqParams = ["startDate", "endDate", "role", "firstName", "lastName", "email"];
+	const reqParams = [
+		"startDate",
+		"endDate",
+		"role",
+		"firstName",
+		"lastName",
+		"email",
+	];
 	newCertificate = [];
 	for (const p of reqParams) {
 		if (p in req.body && req.body[p].length > 0) {
@@ -115,17 +136,25 @@ app.post("/certificate", (req, res, next) => {
 		phone = req.body.phone;
 	}
 	newCertificate.push(phone);
-	db.query("SELECT id FROM admin WHERE email = ?", req.userData.email, (err, admin) => {
-		if (err) throw err;
-		const adminId = admin[0].id;
-		newCertificate.push(adminId);
-		db.query("INSERT INTO certificates(startDate, endDate, role, firstName, lastName, email, id, phone, createdBy) VALUES (?)", [newCertificate], (err, result) => {
+	db.query(
+		"SELECT id FROM admin WHERE email = ?",
+		req.userData.email,
+		(err, admin) => {
 			if (err) throw err;
-			else {
-				return res.status(200).json({ message: "Certificate Created" });
-			}
-		});
-	});
+			const adminId = admin[0].id;
+			newCertificate.push(adminId);
+			db.query(
+				"INSERT INTO certificates(startDate, endDate, role, firstName, lastName, email, id, phone, createdBy) VALUES (?)",
+				[newCertificate],
+				(err, result) => {
+					if (err) throw err;
+					else {
+						return res.status(200).json({ message: "Certificate Created" });
+					}
+				}
+			);
+		}
+	);
 });
 
 app.listen(5000, () => {
