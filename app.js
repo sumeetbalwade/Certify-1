@@ -1,4 +1,5 @@
 var express = require("express");
+var uuid = require("uuid");
 
 const db = require("./db_connect");
 require("dotenv").config();
@@ -84,6 +85,43 @@ app.post("/login", (req, res, next) => {
 	} else {
 		return res.send("Some required parameters missing");
 	}
+});
+
+app.get("/admin", (req, res, next) => {
+	db.query("SELECT * FROM admin", (err, result) => {
+		if (err) throw err;
+		return res.status(200).json({ message: "List of admins", admins: result });
+	});
+});
+
+app.post("/certificate", (req, res, next) => {
+	const reqParams = ["startDate", "endDate", "role", "firstName", "lastName", "email"];
+	newCertificate = [];
+	for (const p of reqParams) {
+		if (p in req.body && req.body[p].length > 0) {
+			newCertificate.push(req.body[p]);
+		} else {
+			return res.status(401).json({ message: "Some required fields empty" });
+		}
+	}
+	const id = uuid.v1();
+	newCertificate.push(id);
+	let phone = null;
+	if ("phone" in req.body) {
+		phone = req.body.phone;
+	}
+	newCertificate.push(phone);
+	db.query("SELECT id FROM admin WHERE email = ?", req.userData.email, (err, admin) => {
+		if (err) throw err;
+		const adminId = admin[0].id;
+		newCertificate.push(adminId);
+		db.query("INSERT INTO certificates(startDate, endDate, role, firstName, lastName, email, id, phone, createdBy) VALUES (?)", [newCertificate], (err, result) => {
+			if (err) throw err;
+			else {
+				return res.status(200).json({ message: "Certificate Created" });
+			}
+		});
+	});
 });
 
 app.listen(5000, () => {
